@@ -1,13 +1,15 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, HttpClientModule],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css',
+  styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
 
@@ -18,7 +20,7 @@ export class LoginComponent {
   constructor( private http: HttpClient, private router: Router) {}
 
   login() {
-    this.http.post('api/auth/login', { username: this.username, password: this.password })
+    this.http.post('http://localhost:8080/api/auth/login', { username: this.username, password: this.password })
           .subscribe( 
           () => {
             this.router.navigate(['game']);
@@ -29,7 +31,7 @@ export class LoginComponent {
         );
     }
   register() {
-    this.http.post('api/auth/register', { username: this.username, password: this.password })
+    this.http.post('http://localhost:8080/api/auth/register', { username: this.username, password: this.password })
       .subscribe(
         () => {
           this.message = 'User registered successfully. Please login.';

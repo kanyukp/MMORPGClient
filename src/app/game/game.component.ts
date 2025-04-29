@@ -1,12 +1,16 @@
 import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { WebSocketService } from '../services/websocket.service';
-import * as PIXI from 'pixi.js'; 
+import * as PIXI from 'pixi.js';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-game',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink], // Add FormsModule, etc., if needed
   templateUrl: './game.component.html',
-  styleUrl: './game.component.css'
+  styleUrls: ['./game.component.css']
 })
 export class GameComponent implements OnInit {
 
@@ -63,8 +67,16 @@ export class GameComponent implements OnInit {
     }
     let NUMBER_OF_FRAMES = 8;
     for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
-      let temp = new PIXI.Rectangle(i * frameWidth, rowIndex * frameHeight, frameWidth, frameHeight)
-      const frame = new PIXI.Texture.from(texture.baseTexture, temp);  //TODO FIX
+      const frameRect = new PIXI.Rectangle(
+        i * frameWidth,
+        rowIndex * frameHeight,
+        frameWidth,
+        frameHeight
+      );
+      const frame = new PIXI.Texture({
+        source: texture.baseTexture, // Use 'source' in PixiJS v8+
+        frame: frameRect
+      });
       frames.push(frame);
     }
 
