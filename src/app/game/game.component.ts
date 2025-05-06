@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { WebSocketService } from '../services/websocket.service';
 import * as PIXI from 'pixi.js';
 import { CommonModule } from '@angular/common';
@@ -12,20 +12,70 @@ import { RouterLink } from '@angular/router';
   templateUrl: './game.component.html',
   styleUrls: ['./game.component.css']
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements AfterViewInit {
 
   @ViewChild('gameContainer', {static:true}) gameContainer: ElementRef<HTMLDivElement>;
   private app: PIXI.Application;
 
   constructor(private webSocketService: WebSocketService) {}
 
-  ngOnInit(): void {
-    this.app = new PIXI.Application({width:800, height:600});
-    this.gameContainer.nativeElement.appendChild(this.app.view);
+  ngAfterViewInit(): void {
+    if (!this.gameContainer?.nativeElement) {
+      console.error('Game container not found');
+      return;
+    }
 
-    this.webSocketService.connect();
-    this.webSocketService.messages$.subscribe((message) => this.handleGameUpdate(message));
+    try {
+      // Debug PIXI.js module
+      console.log('PIXI Version:', PIXI.VERSION);
+      console.log('PIXI.Application:', PIXI.Application);
+      console.log('PIXI Module Keys:', Object.keys(PIXI));
+
+      // Check WebGL support
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        throw new Error('WebGL not supported in this browser');
+      }
+
+      // Initialize PIXI Application
+      this.app = new PIXI.Application({
+        width: 800,
+        height: 600,
+        backgroundColor: 0x000000,
+        antialias: true
+      });
+
+      // Verify app and view
+      if (!this.app || !this.app.view) {
+        throw new Error('PIXI Application or view not initialized');
+      }
+
+  // Append the canvas
+this.gameContainer.nativeElement.appendChild(this.app.view as HTMLCanvasElement);
+console.log('Canvas appended:', this.app.view);
+
+      // Auto-focus for keyboard input
+      this.gameContainer.nativeElement.focus();
+
+      // Connect to WebSocket
+      this.webSocketService.connect();
+      this.webSocketService.messages$.subscribe((message) => this.handleGameUpdate(message));
+    } catch (error) {
+      console.error('PIXI Initialization Error:', error);
+    }
   }
+
+
+  
+
+  // ngOnInit(): void {
+  //   this.app = new PIXI.Application({width:800, height:600});
+  //   this.gameContainer.nativeElement.appendChild(this.app.view);
+
+  //   this.webSocketService.connect();
+  //   this.webSocketService.messages$.subscribe((message) => this.handleGameUpdate(message));
+  // }
 
   handleGameUpdate(message:any) {
     this.app.stage.removeChildren();
@@ -65,30 +115,28 @@ export class GameComponent implements OnInit {
         rowIndex = 3;
         break;
     }
-    let NUMBER_OF_FRAMES = 8;
-    for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
-      const frameRect = new PIXI.Rectangle(
-        i * frameWidth,
-        rowIndex * frameHeight,
-        frameWidth,
-        frameHeight
-      );
-      const frame = new PIXI.Texture({
-        source: texture.baseTexture, // Use 'source' in PixiJS v8+
-        frame: frameRect
-      });
-      frames.push(frame);
-    }
+   
+    const NUMBER_OF_FRAMES = 8;
+  for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
+    const frameRect = new PIXI.Rectangle(
+      i * frameWidth,
+      rowIndex * frameHeight,
+      frameWidth,
+      frameHeight
+    );
+    const frame = new PIXI.Texture(texture.baseTexture, frameRect); // 👈 old constructor
+    frames.push(frame);
+  }
 
-    const animatedSprite = new PIXI.AnimatedSprite(frames);
-    animatedSprite.x = entity.x;
-    animatedSprite.y = entity.y;
-    animatedSprite.width = entity.width;
-    animatedSprite.height = entity.height;
-    animatedSprite.animationSpeed = 0.1;
-    animatedSprite.play();
+  const animatedSprite = new PIXI.AnimatedSprite(frames);
+  animatedSprite.x = entity.x;
+  animatedSprite.y = entity.y;
+  animatedSprite.width = entity.width;
+  animatedSprite.height = entity.height;
+  animatedSprite.animationSpeed = 0.1;
+  animatedSprite.play();
 
-    this.app.stage.addChild(animatedSprite);
+  this.app.stage.addChild(animatedSprite);
   }
 
   renderStaticSprite(entity:any){
@@ -106,6 +154,7 @@ export class GameComponent implements OnInit {
     switch (event.key) {
       case 'W':
         action = {type: 'MOVE' , direction: 'UP'};
+        console.log("typing w");
         break;
       case 'S':
         action = {type: 'MOVE' , direction: 'DOWN'};

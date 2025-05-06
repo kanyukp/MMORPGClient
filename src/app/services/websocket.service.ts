@@ -10,13 +10,19 @@ export class WebSocketService {
     public messages$ = new Subject<any>();
 
     connect() {
+        console.log("Connecting to WebSocket...");
         this.socket$ = new WebSocketSubject('ws://localhost:8080/game');
-        this.socket$.subscribe(
-            (message) => this.messages$.next(message),
-            (err) => console.error(err),
-            () => console.warn('Completed!')
-        );
-    }
+      
+        this.socket$.subscribe({
+          next: (message) => this.messages$.next(message),
+          error: (err) => {
+            console.error('WebSocket error:', err);
+          },
+          complete: () => {
+            console.warn('WebSocket connection closed');
+          }
+        });
+      }
     sendMessage(message: any) {
         this.socket$.next(message);
     }

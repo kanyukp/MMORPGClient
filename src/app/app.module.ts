@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { WebSocketService } from './services/websocket.service';
 import { GameComponent } from './game/game.component';
 import { LoginComponent } from './login/login.component';
+import { LoginService } from './services/LoginService';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,7 @@ import { LoginComponent } from './login/login.component';
     AppComponent
 
   ],
-  providers: [WebSocketService],
+  providers: [WebSocketService, LoginService],
   bootstrap: []
 })
 export class AppModule {}
