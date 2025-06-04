@@ -4,6 +4,10 @@ import * as PIXI from 'pixi.js';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LoginService, User } from '../services/LoginService';
+import { Subscription } from 'rxjs';
+import { Entity, Direction, Action } from '../models/EntityModel';
+
 
 @Component({
   selector: 'app-game',
@@ -14,16 +18,24 @@ import { RouterLink } from '@angular/router';
 })
 export class GameComponent implements AfterViewInit {
 
+  currentEntity?: Entity;
+  private entitySubscription?: Subscription;
+
+
   @ViewChild('gameContainer', {static:true}) gameContainer: ElementRef<HTMLDivElement>;
   private app: PIXI.Application;
 
-  constructor(private webSocketService: WebSocketService) {}
+  constructor(private webSocketService: WebSocketService, private loginService: LoginService) {}
 
   ngAfterViewInit(): void {
     if (!this.gameContainer?.nativeElement) {
       console.error('Game container not found');
       return;
     }
+
+      this.loginService.currentEntity$.subscribe(entity => {
+        this.currentEntity = entity || undefined;
+      });
 
     try {
       // Debug PIXI.js module
@@ -42,7 +54,7 @@ export class GameComponent implements AfterViewInit {
       this.app = new PIXI.Application({
         width: 800,
         height: 600,
-        backgroundColor: 0x000000,
+        backgroundColor: 0xFFFFFF,
         antialias: true
       });
 
@@ -51,9 +63,9 @@ export class GameComponent implements AfterViewInit {
         throw new Error('PIXI Application or view not initialized');
       }
 
-  // Append the canvas
-this.gameContainer.nativeElement.appendChild(this.app.view as HTMLCanvasElement);
-console.log('Canvas appended:', this.app.view);
+      // Append the canvas
+      this.gameContainer.nativeElement.appendChild(this.app.view as HTMLCanvasElement);
+      console.log('Canvas appended:', this.app.view);
 
       // Auto-focus for keyboard input
       this.gameContainer.nativeElement.focus();
@@ -67,7 +79,10 @@ console.log('Canvas appended:', this.app.view);
   }
 
 
-  
+    ngOnDestroy() {
+      this.entitySubscription?.unsubscribe();
+    }
+
 
   // ngOnInit(): void {
   //   this.app = new PIXI.Application({width:800, height:600});
@@ -79,7 +94,7 @@ console.log('Canvas appended:', this.app.view);
 
   handleGameUpdate(message:any) {
     this.app.stage.removeChildren();
-
+    console.log(message);
     this.renderEntities(message.players);
     this.renderEntities(message.projectiles);
     this.renderEntities(message.blocks);
@@ -87,7 +102,7 @@ console.log('Canvas appended:', this.app.view);
   }
   renderEntities(entities: any[]) {
     entities.forEach(entity => {
-      if (entity.currenActoin === 'Move') {
+      if (entity.currentAction === 'Move') {
         this.renderMovingAnimation(entity);
       } else {
         this.renderStaticSprite(entity);
@@ -115,7 +130,7 @@ console.log('Canvas appended:', this.app.view);
         rowIndex = 3;
         break;
     }
-   
+
     const NUMBER_OF_FRAMES = 8;
   for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
     const frameRect = new PIXI.Rectangle(
@@ -140,7 +155,7 @@ console.log('Canvas appended:', this.app.view);
   }
 
   renderStaticSprite(entity:any){
-    const texture = PIXI.Texture.from(""/* TODO ${entity.sprite} + file location*/);
+    const texture = PIXI.Texture.from(`../../../Sprites/${entity.sprite}`);
     const sprite = new PIXI.Sprite(texture);
     sprite.x= entity.x;
     sprite.y = entity.y;
@@ -151,19 +166,21 @@ console.log('Canvas appended:', this.app.view);
 
   onKeyDown(event: KeyboardEvent){
     let action;
+    console.log("keyboard event");
+
     switch (event.key) {
-      case 'W':
-        action = {type: 'MOVE' , direction: 'UP'};
+      case 'w':
+        action = {actionType: 'MOVE' , direction: 'UP', playerId: this.currentEntity?.id };
         console.log("typing w");
         break;
-      case 'S':
-        action = {type: 'MOVE' , direction: 'DOWN'};
+      case 's':
+        action = {actionType: 'MOVE' , direction: 'DOWN', playerId: this.currentEntity?.id };
         break;
-      case 'A':
-        action = {type: 'MOVE' , direction: 'LEFT'};
+      case 'a':
+        action = {actionType: 'MOVE' , direction: 'LEFT', playerId: this.currentEntity?.id };
         break;
-      case 'D':
-        action = {type: 'MOVE' , direction: 'RIGHT'};
+      case 'd':
+        action = {actionType: 'MOVE' , direction: 'RIGHT', playerId: this.currentEntity?.id };
         break;
     }
     if (action) {

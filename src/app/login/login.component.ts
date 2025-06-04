@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LoginService, User } from '../services/LoginService';
+import { Entity } from '../models/EntityModel';
 
 @Component({
   selector: 'app-login',
@@ -17,8 +18,7 @@ export class LoginComponent {
   username: string = "";
   password: string = "";
   message: string = "";
-  loggedInUser?: User;
-
+  loggedInEntity?: Entity;
 
   constructor( private http: HttpClient, private router: Router, private loginService:LoginService) {}
 
@@ -28,7 +28,7 @@ export class LoginComponent {
         if (typeof data === 'string') {
           this.message = data; // unexpected string (shouldn't happen, but guarded)
         } else {
-          this.loggedInUser = data;
+          this.loggedInEntity = data;
           this.message = `Welcome, ${data.username}!`;
           this.router.navigate(['game']);
           // Optionally store in localStorage/sessionStorage
@@ -36,31 +36,37 @@ export class LoginComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.message = err.error || 'Login failed. Please try again.';
-        this.loggedInUser = undefined;
+        this.loggedInEntity = undefined;
       }
     });
-    }
+  }
+
   register() {
-    this.http.post('http://localhost:8080/api/auth/register', { username: this.username, password: this.password })
-      .subscribe(
-        () => {
+    this.loginService.register(this.username, this.password).subscribe({
+      next: (response) => {
+        if (typeof response === 'string') {
+          this.message = response;
+        } else {
+          this.loggedInEntity = response;
           this.message = 'User registered successfully. Please login.';
-        },
-        (error) => {
-          this.message = 'Username already exists. Please choose another.';
         }
-      );
+      },
+      error: (error) => {
+        this.message = error;
+        this.loggedInEntity = undefined;
+      }
+    });
   }
 }
 
 // login() {
 //   this.http.post('api/auth/login', {username: this.username, password: this.password })
-//         .subscribe( 
-//         { 
+//         .subscribe(
+//         {
 //           next: () => this.router.navigate(['game']),
 //           error: () => this.message = 'User not found.',
-//           complete: 
-//         }, 
+//           complete:
+//         },
 //         (error) => {
 //           this.message = 'User not found.';
 //         }
