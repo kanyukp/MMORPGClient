@@ -54,7 +54,7 @@ export class GameComponent implements AfterViewInit {
       this.app = new PIXI.Application({
         width: 800,
         height: 600,
-        backgroundColor: 0xFFFFFF,
+        backgroundColor: 0x000000,
         antialias: true
       });
 
@@ -102,57 +102,58 @@ export class GameComponent implements AfterViewInit {
   }
   renderEntities(entities: any[]) {
     entities.forEach(entity => {
-      if (entity.currentAction === 'Move') {
-        this.renderMovingAnimation(entity);
-      } else {
-        this.renderStaticSprite(entity);
-      }
+//       if (entity.currentAction === 'MOVE') {
+//         this.renderMovingAnimation(entity);
+//       } else {
+//         this.renderStaticSprite(entity);
+//       } TODO add animations
+    this.renderStaticSprite(entity);
     });
   }
-  renderMovingAnimation(entity: any){
-    const texture = PIXI.Texture.from(""/* TODO ${entity.sprite} + file location*/);
-    const frameWidth = entity.width;
-    const frameHeight = entity.height;
-    const frames = [];
-    let rowIndex = 0;
-
-    switch (entity.direction) {
-      case 'UP':
-        rowIndex = 0;
-        break;
-      case 'DOWN':
-        rowIndex = 1;
-        break;
-      case 'LEFT':
-        rowIndex = 2;
-        break;
-      case 'RIGHT':
-        rowIndex = 3;
-        break;
-    }
-
-    const NUMBER_OF_FRAMES = 8;
-  for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
-    const frameRect = new PIXI.Rectangle(
-      i * frameWidth,
-      rowIndex * frameHeight,
-      frameWidth,
-      frameHeight
-    );
-    const frame = new PIXI.Texture(texture.baseTexture, frameRect); // 👈 old constructor
-    frames.push(frame);
-  }
-
-  const animatedSprite = new PIXI.AnimatedSprite(frames);
-  animatedSprite.x = entity.x;
-  animatedSprite.y = entity.y;
-  animatedSprite.width = entity.width;
-  animatedSprite.height = entity.height;
-  animatedSprite.animationSpeed = 0.1;
-  animatedSprite.play();
-
-  this.app.stage.addChild(animatedSprite);
-  }
+//   renderMovingAnimation(entity: any){
+//     const texture = PIXI.Texture.from(""/* TODO ${entity.sprite} + file location*/);
+//     const frameWidth = entity.width;
+//     const frameHeight = entity.height;
+//     const frames = [];
+//     let rowIndex = 0;
+//
+//     switch (entity.direction) {
+//       case 'UP':
+//         rowIndex = 0;
+//         break;
+//       case 'DOWN':
+//         rowIndex = 1;
+//         break;
+//       case 'LEFT':
+//         rowIndex = 2;
+//         break;
+//       case 'RIGHT':
+//         rowIndex = 3;
+//         break;
+//     }
+//
+//     const NUMBER_OF_FRAMES = 8;
+//   for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
+//     const frameRect = new PIXI.Rectangle(
+//       i * frameWidth,
+//       rowIndex * frameHeight,
+//       frameWidth,
+//       frameHeight
+//     );
+//     const frame = new PIXI.Texture(texture.baseTexture, frameRect); // 👈 old constructor
+//     frames.push(frame);
+//   }
+//
+//   const animatedSprite = new PIXI.AnimatedSprite(frames);
+//   animatedSprite.x = entity.x;
+//   animatedSprite.y = entity.y;
+//   animatedSprite.width = entity.width;
+//   animatedSprite.height = entity.height;
+//   animatedSprite.animationSpeed = 0.1;
+//   animatedSprite.play();
+//
+//   this.app.stage.addChild(animatedSprite);
+//   }
 
   renderStaticSprite(entity:any){
     const texture = PIXI.Texture.from(`../../../Sprites/${entity.sprite}`);
