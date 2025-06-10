@@ -25,7 +25,7 @@ export class GameComponent implements AfterViewInit {
         charspritetest: 'assets/sprites/charspritetest.png',
         fireball: 'assets/sprites/fireball.png',
         firebolt: 'assets/sprites/Firebolt.png',
-        playertest: 'assets/sprites/playertest.png',
+       // playertest: 'assets/sprites/playertest.png',
         testmap: 'assets/sprites/TestMap.png'
     };
 
@@ -41,6 +41,15 @@ export class GameComponent implements AfterViewInit {
   constructor(private webSocketService: WebSocketService, private loginService: LoginService) {
     // Pre-load your textures
     PIXI.Assets.add('playerSprite', '/assets/sprites/playertest.png');
+
+            // Get the current entity from the login service
+            this.currentEntity = this.loginService.getCurrentEntity() || undefined;
+
+            // Subscribe to changes in case the entity gets updated
+            this.entitySubscription = this.loginService.currentEntity$.subscribe(entity => {
+                this.currentEntity = entity || undefined;
+            });
+
     // Add other sprites as needed
 }
 
@@ -120,13 +129,13 @@ export class GameComponent implements AfterViewInit {
         let rowIndex = 0;
 
         switch (entity.direction) {
-            case 'UP': rowIndex = 0; break;
-            case 'DOWN': rowIndex = 1; break;
-            case 'LEFT': rowIndex = 2; break;
-            case 'RIGHT': rowIndex = 3; break;
+            case 'UP': rowIndex = 3; break;
+            case 'DOWN': rowIndex = 0; break;
+            case 'LEFT': rowIndex = 1; break;
+            case 'RIGHT': rowIndex = 2; break;
         }
 
-        const NUMBER_OF_FRAMES = 8;
+        const NUMBER_OF_FRAMES = 3;
         for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
             const frame = new PIXI.Texture(
                 baseTexture,
@@ -198,34 +207,93 @@ async handleGameUpdate(message: any) {
 
 }
 async updateOrCreateEntity(entity: any) {
-        let sprite = this.spriteInstances.get(entity.id);
+    let sprite = this.spriteInstances.get(entity.id);
+    let needNewSprite = false;
 
-        if (!sprite) {
-            // Create new sprite if it doesn't exist
-            if (entity.currentAction === 'MOVE') {
-                sprite = await this.createAnimatedSprite(entity);
-            } else {
-                sprite = await this.createStaticSprite(entity);
-            }
+    // Check if we need to create a new sprite
+    if (!sprite) {
+        needNewSprite = true;
+    } else if (
+        (entity.currentAction === 'MOVE' && !(sprite instanceof PIXI.AnimatedSprite)) ||
+        (entity.currentAction !== 'MOVE' && sprite instanceof PIXI.AnimatedSprite)
+    ) {
+        // Remove old sprite if we're switching between animated and static
+        this.app.stage.removeChild(sprite);
+        this.spriteInstances.delete(entity.id);
+        needNewSprite = true;
+    }
+
+    if (needNewSprite) {
+        // Create new sprite
+        if (entity.currentAction === 'MOVE') {
+            sprite = await this.createAnimatedSprite(entity);
+            (sprite as any).currentDirection = entity.direction; // Store initial direction
+        } else {
+            sprite = await this.createStaticSprite(entity);
+        }
+        if (sprite) {  // Check if sprite was created successfully
             this.spriteInstances.set(entity.id, sprite);
             this.app.stage.addChild(sprite);
-        }
-
-        // Update sprite properties
-        sprite.x = entity.x;
-        sprite.y = entity.y;
-
-        // Handle animation state changes
-        if (sprite instanceof PIXI.AnimatedSprite) {
-            if (entity.currentAction === 'MOVE') {
-                if (!sprite.playing) {
-                    sprite.play();
-                }
-            } else {
-                sprite.stop();
-            }
+        } else {
+            console.error('Failed to create sprite for entity:', entity);
+            return;
         }
     }
+
+    // At this point sprite should exist, but let's add a safety check
+    if (!sprite) {
+        console.error('Sprite is undefined for entity:', entity);
+        return;
+    }
+
+    // Now we can safely update the sprite
+    sprite.x = entity.x;
+    sprite.y = entity.y;
+
+    // Handle animation updates for animated sprites
+    if (sprite instanceof PIXI.AnimatedSprite) {
+        const prevDirection = (sprite as any).currentDirection;
+
+        // Only update frames if direction changed
+        if (prevDirection !== entity.direction) {
+            const spriteName = entity.sprite.replace('.png', '');
+            const baseTexture = this.getTexture(spriteName).baseTexture;
+            const frames = [];
+            let rowIndex = 0;
+
+            switch (entity.direction) {
+                case 'UP': rowIndex = 0; break;
+                case 'DOWN': rowIndex = 1; break;
+                case 'LEFT': rowIndex = 2; break;
+                case 'RIGHT': rowIndex = 3; break;
+            }
+
+            const NUMBER_OF_FRAMES = 8;
+            for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
+                const frame = new PIXI.Texture(
+                    baseTexture,
+                    new PIXI.Rectangle(
+                        i * entity.width,
+                        rowIndex * entity.height,
+                        entity.width,
+                        entity.height
+                    )
+                );
+                frames.push(frame);
+            }
+
+            sprite.textures = frames;
+            (sprite as any).currentDirection = entity.direction;
+        }
+
+        // Ensure animation is playing while moving
+        if (entity.currentAction === 'MOVE' && !sprite.playing) {
+            sprite.play();
+        } else if (entity.currentAction !== 'MOVE' && sprite.playing) {
+            sprite.stop();
+        }
+    }
+}
 //  async createAnimatedSprite(entity: any): Promise<PIXI.AnimatedSprite> {
 //          // Get the base texture from our preloaded textures
 //          const spriteName = entity.sprite.replace('.png', '');
