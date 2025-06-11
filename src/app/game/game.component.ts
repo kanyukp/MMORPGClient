@@ -262,13 +262,13 @@ async updateOrCreateEntity(entity: any) {
             let rowIndex = 0;
 
             switch (entity.direction) {
-                case 'UP': rowIndex = 0; break;
-                case 'DOWN': rowIndex = 1; break;
-                case 'LEFT': rowIndex = 2; break;
-                case 'RIGHT': rowIndex = 3; break;
+            case 'UP': rowIndex = 3; break;
+            case 'DOWN': rowIndex = 0; break;
+            case 'LEFT': rowIndex = 1; break;
+            case 'RIGHT': rowIndex = 2; break;
             }
 
-            const NUMBER_OF_FRAMES = 8;
+            const NUMBER_OF_FRAMES = 3;
             for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
                 const frame = new PIXI.Texture(
                     baseTexture,
