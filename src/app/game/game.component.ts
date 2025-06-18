@@ -20,6 +20,7 @@ export class GameComponent implements AfterViewInit {
 
   currentEntity?: Entity;
   private entitySubscription?: Subscription;
+  private pressedKeys: Set<string> = new Set();
 
     private readonly SPRITE_ASSETS = {
         charspritetest: 'assets/sprites/charspritetest.png',
@@ -32,7 +33,7 @@ export class GameComponent implements AfterViewInit {
     // Properly type the textures Map
     private loadedTextures: Map<string, PIXI.Texture<PIXI.Resource>> = new Map();
 
-      private spriteInstances: Map<number, PIXI.AnimatedSprite | PIXI.Sprite> = new Map();
+    private spriteInstances: Map<number, PIXI.AnimatedSprite | PIXI.Sprite> = new Map();
 
 
   @ViewChild('gameContainer', {static:true}) gameContainer: ElementRef<HTMLDivElement>;
@@ -331,115 +332,81 @@ async updateOrCreateEntity(entity: any) {
 //          return animatedSprite;
 //      }
 
-    async createStaticSprite(entity: any): Promise<PIXI.Sprite> {
-            const spritePath = `/assets/sprites/${entity.sprite}`;
-            const texture = await PIXI.Assets.load(spritePath);
-            const sprite = new PIXI.Sprite(texture);
+async createStaticSprite(entity: any): Promise<PIXI.Sprite> {
+    const spriteName = entity.sprite.replace('.png', '');
+    const baseTexture = this.getTexture(spriteName).baseTexture;
 
-            sprite.x = entity.x;
-            sprite.y = entity.y;
-            sprite.width = entity.width;
-            sprite.height = entity.height;
-
-            return sprite;
-        }
-
-
-
-  renderEntities(entities: any[]) {
-    entities.forEach(entity => {
-      if (entity.currentAction === 'MOVE') {
-        //console.log("Moving!!!!");
-        this.renderMovingAnimation(entity);
-      } else {
-        this.renderStaticSprite(entity);
-      }
-    });
-  }
-  async renderMovingAnimation(entity: any) {
-    try {
-        const spritePath = `/assets/sprites/${entity.sprite}`;
-        const baseTexture = await PIXI.Assets.load(spritePath);
-
-        const frameWidth = entity.width;
-        const frameHeight = entity.height;
-        const frames = [];
-        let rowIndex = 0;
-
-        switch (entity.direction) {
-            case 'UP':
-                rowIndex = 3;
-                break;
-            case 'DOWN':
-                rowIndex = 0;
-                break;
-            case 'LEFT':
-                rowIndex = 1;
-                break;
-            case 'RIGHT':
-                rowIndex = 2;
-                break;
-        }
-
-        const NUMBER_OF_FRAMES = 3;
-        for (let i = 0; i < NUMBER_OF_FRAMES; i++) {
-            const frame = new PIXI.Texture(
-                baseTexture,
-                new PIXI.Rectangle(
-                    i * frameWidth,
-                    rowIndex * frameHeight,
-                    frameWidth,
-                    frameHeight
-                )
-            );
-            frames.push(frame);
-        }
-
-        const animatedSprite = new PIXI.AnimatedSprite(frames);
-        animatedSprite.x = entity.x;
-        animatedSprite.y = entity.y;
-        animatedSprite.width = entity.width;
-        animatedSprite.height = entity.height;
-        animatedSprite.animationSpeed = 0.1;
-        animatedSprite.play();
-
-        this.app.stage.addChild(animatedSprite);
-    } catch (error) {
-        console.error('Error in renderMovingAnimation:', error);
-        // Fallback to static sprite if animation fails
-        await this.renderStaticSprite(entity);
+    // Determine which row to use based on direction
+    let rowIndex = 0;
+    switch (entity.direction) {
+        case 'UP': rowIndex = 3; break;
+        case 'DOWN': rowIndex = 0; break;
+        case 'LEFT': rowIndex = 1; break;
+        case 'RIGHT': rowIndex = 2; break;
     }
+
+    // Create a texture that only shows the first frame of the appropriate row
+    const frameTexture = new PIXI.Texture(
+        baseTexture,
+        new PIXI.Rectangle(
+            0,                  // x position (first frame)
+            rowIndex * entity.height,  // y position (row based on direction)
+            entity.width,       // width of one frame
+            entity.height       // height of one frame
+        )
+    );
+
+    const sprite = new PIXI.Sprite(frameTexture);
+    sprite.x = entity.x;
+    sprite.y = entity.y;
+    sprite.width = entity.width;
+    sprite.height = entity.height;
+
+    return sprite;
 }
 
-  async renderStaticSprite(entity: any) {
-    try {
-        if (!entity.sprite) {
-            console.error('No sprite property found on entity:', entity);
-            return;
+
+
+  async renderEntities(entities: any[]) {
+    // Track active entity IDs
+    const activeEntityIds = new Set<number>();
+
+    for (const entity of entities) {
+        activeEntityIds.add(entity.id);
+        let sprite = this.spriteInstances.get(entity.id);
+
+        if (!sprite) {
+            // Create new sprite if it doesn't exist
+            if (entity.currentAction === 'MOVE') {
+                sprite = await this.createAnimatedSprite(entity);
+            } else {
+                sprite = await this.createStaticSprite(entity);
+            }
+            if (sprite) {
+                this.spriteInstances.set(entity.id, sprite);
+                this.app.stage.addChild(sprite);
+            }
+        } else {
+            // Update existing sprite position
+            sprite.x = entity.x;
+            sprite.y = entity.y;
         }
+    }
 
-        // Make sure the path starts with a forward slash
-        const spritePath = `/assets/sprites/${entity.sprite}`;
-        // console.log('Loading sprite from:', spritePath);
-
-        // Load the texture
-        const texture = await PIXI.Assets.load(spritePath);
-        const sprite = new PIXI.Sprite(texture);
-
-        sprite.x = entity.x;
-        sprite.y = entity.y;
-        sprite.width = entity.width;
-        sprite.height = entity.height;
-
-        this.app.stage.addChild(sprite);
-    } catch (error) {
-        console.error('Error rendering sprite:', error);
-        console.error('Entity that caused error:', entity);
+    // Remove sprites for entities that no longer exist
+    for (const [id, sprite] of this.spriteInstances) {
+        if (!activeEntityIds.has(id)) {
+            this.app.stage.removeChild(sprite);
+            this.spriteInstances.delete(id);
+        }
     }
 }
 
   onKeyDown(event: KeyboardEvent){
     let action;
+    const key = event.key.toLowerCase();
+    this.pressedKeys.add(key);
+
     // console.log("keyboard event");
 
     switch (event.key) {
@@ -456,10 +423,30 @@ async updateOrCreateEntity(entity: any) {
       case 'd':
         action = {actionType: 'MOVE' , direction: 'RIGHT', playerId: this.currentEntity?.id };
         break;
+      case ' ':
+        action = {actionType: 'ATTACK' , direction: this.currentEntity?.direction, playerId: this.currentEntity?.id };
+        break;
     }
     if (action) {
       this.webSocketService.sendMessage(action);
     }
   }
+// Add this new method
+  onKeyUp(event: KeyboardEvent) {
+    const key = event.key.toLowerCase();
+    this.pressedKeys.delete(key);
+    console.log("Checking key up");
+    // Check if no movement keys are pressed
+    if (!['w', 'a', 's', 'd'].some(k => this.pressedKeys.has(k))) {
+        console.log("shoud set idle");
+        const action = {
+            actionType: 'IDLE',
+            direction: this.currentEntity?.direction || 'DOWN',
+            playerId: this.currentEntity?.id
+        };
+        this.webSocketService.sendMessage(action);
+    }
+  }
+
 
 }
