@@ -27,7 +27,7 @@ export class GameComponent implements AfterViewInit {
         fireball: 'assets/sprites/fireball.png',
         Firebolt: 'assets/sprites/Firebolt.png',
        // playertest: 'assets/sprites/playertest.png',
-        testmap: 'assets/sprites/TestMap.png'
+        TestMap: 'assets/sprites/TestMap.png'
     };
 
     // Properly type the textures Map
@@ -93,7 +93,6 @@ export class GameComponent implements AfterViewInit {
                 PIXI.Assets.add(key, path);
             });
 
-            //console.log('Starting texture preload...');
             // Properly type the loaded textures
             const textures = await PIXI.Assets.load(Object.keys(this.SPRITE_ASSETS)) as Record<string, PIXI.Texture<PIXI.Resource>>;
 
@@ -102,7 +101,6 @@ export class GameComponent implements AfterViewInit {
                 this.loadedTextures.set(key, texture);
             });
 
-            //console.log('All textures loaded successfully');
         } catch (error) {
             console.error('Error preloading textures:', error);
             throw error;
@@ -119,12 +117,10 @@ export class GameComponent implements AfterViewInit {
     }
 
     async createAnimatedSprite(entity: any): Promise<PIXI.AnimatedSprite> {
-    //console.log('Starting createAnimatedSprite for entity:', entity);
 
     // Get the base texture from our preloaded textures
     const spriteName = entity.sprite.replace('.png', '');
     const baseTexture = this.getTexture(spriteName).baseTexture;
-    //console.log('Base texture retrieved:', baseTexture ? 'success' : 'failed');
 
     // Log the frames creation
     const frameWidth = entity.width;
@@ -452,7 +448,9 @@ async updateOrCreateEntity(entity: any) {
 
 async createStaticSprite(entity: any): Promise<PIXI.Sprite> {
     const spriteName = entity.sprite.replace('.png', '');
+    console.log("Static sprite before get texture: " + spriteName);
     const baseTexture = this.getTexture(spriteName).baseTexture;
+    console.log("Static sprite after get texture: " + spriteName);
 
     // Determine which row to use based on direction
     let rowIndex = 0;
@@ -548,6 +546,9 @@ async createStaticSprite(entity: any): Promise<PIXI.Sprite> {
         action = {actionType: 'ATTACK' , direction: this.currentEntity?.direction, playerId: this.currentEntity?.id };
         //console.log("This.currentDirection: " +  this.currentDirection);
         console.log("curentEntity.direction: "+ this.currentEntity?.direction);
+        break;
+      case 'e':
+        action = {actionType: 'PLACE' , direction: this.currentEntity?.direction, playerId: this.currentEntity?.id, x: this.currentEntity?.x, y: this.currentEntity?.y };
         break;
     }
     if (action) {
