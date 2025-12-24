@@ -12,7 +12,8 @@ export enum Direction {
 export enum Action {
     MOVE = 'MOVE',
     IDLE = 'IDLE',
-    ATTACK = 'ATTACK'
+    ATTACK = 'ATTACK',
+    PLACE = 'PLACE'
 }
 
 export class Entity {
